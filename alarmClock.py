@@ -35,7 +35,8 @@ def printMenuDB():
         actionDB = 'ADD'
     elif choice == '3':
         actionDB = 'DELETE'
-
+    elif choice == '4':
+        actionDB = 'EXIT'
     return actionDB
 
 
@@ -48,9 +49,10 @@ def addNewEntry():
         cur.execute('INSERT INTO YTLINKS VALUES(NULL, ?, ?);', (ytLink, yt.title))
         # commit changes in the DB
         con.commit()
+        print('Entry has been added to the DB.')
 
     except:
-        print('Error occured. It could be connection error or check your URL validity')
+        print('Error occured. It could be connection error or check your URL validity.')
 
 
 def listAllEntries():
@@ -60,22 +62,15 @@ def listAllEntries():
     for record in records:
         print(record['ID'], record['TITLE'], record['LINK'])
 
-# creating connection with DB
-con = sqlite3.connect('ytLinks.db')
-
-# access to the columns by indexes and names
-con.row_factory = sqlite3.Row
-
-# creating cursor object
-cur = con.cursor()
-
-# creating table with YT Links
-cur.execute('''
-    CREATE TABLE IF NOT EXISTS YTLINKS (
-        ID INTEGER PRIMARY KEY ASC,
-        LINK VARCHAR(250) NOT NULL,
-        TITLE VARCHAR(250) DEFAULT ''
-        )''')
+def deleteEntry():
+    # get id, title or link with you want to delete and do it
+    id = pyip.inputNum('Provide number of ID to delete: ')
+    try:
+        cur.execute('DELETE FROM YTLINKS WHERE ID=?', (id, ))
+        print('Entry has been deleted.')
+        con.commit()
+    except:
+        print('Check validity of your ID.')
 
 # create main loop , menu , and interface to adding new links, deleting and listing
 
@@ -87,9 +82,35 @@ while program:
     if action == 'EXIT':
         program = False
     elif action == 'DB':
-        dbAction = printMenuDB() # possible results: LIST, ADD, DELETE
-        if dbAction == 'ADD':
-            addNewEntry()
-        elif dbAction == 'LIST':
-            listAllEntries()
+        dbAdministration = True
+        while dbAdministration:
+            # creating connection with DB
+            con = sqlite3.connect('ytLinks.db')
 
+            # access to the columns by indexes and names
+            con.row_factory = sqlite3.Row
+
+            # creating cursor object
+            cur = con.cursor()
+
+            # creating table with YT Links
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS YTLINKS (
+                    ID INTEGER PRIMARY KEY ASC,
+                    LINK VARCHAR(250) NOT NULL,
+                    TITLE VARCHAR(250) DEFAULT ''
+                    )''')
+
+            dbAction = printMenuDB() # possible results: LIST, ADD, DELETE, EXIT
+            if dbAction == 'ADD':
+                addNewEntry()
+            elif dbAction == 'LIST':
+                listAllEntries()
+            elif dbAction == 'EXIT':
+                dbAdministration = False
+            elif dbAction == 'DELETE':
+                deleteEntry()
+
+
+        # close connection with DB
+        con.close()
