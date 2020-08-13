@@ -8,6 +8,9 @@ import webbrowser
 import sys
 import time
 import random
+import logging
+
+logging.basicConfig(filename='logs', level=logging.INFO)
 
 def printMenu():
     print('---- MAIN MENU ----')
@@ -92,6 +95,17 @@ def printAlarmClockMenu():
         alarmClockAction = 'EXIT'
     return alarmClockAction
 
+def getRandomLink():
+    cur.execute('SELECT * FROM YTLINKS')
+    records = cur.fetchall()
+    counter = 0
+    randomLink = random.randint(0, len(records))
+    for record in records:
+        if counter == randomLink:
+            randomLink = record['LINK']
+            return randomLink
+        counter += 1
+
 def turnOnAlarmClock(alarm):
     if type(alarm) != datetime:
         print('Alarm clock not set!')
@@ -101,11 +115,16 @@ def turnOnAlarmClock(alarm):
         print('ALARM CLOCK TURNED ON')
         while checking:
             dateNow = datetime.now()
-            if dateNow.date() == alarm.date() and dateNow.hour == alarm.hour and dateNow.min == alarm.min:
-# HERE ADD RANDOM LINK FEATURE
-                webbrowser.open('https://youtu.be/uCGD9dT12C0?list=RDuCGD9dT12C0')
+            if dateNow.date() == alarm.date() and dateNow.hour == alarm.hour and dateNow.minute == alarm.minute:
+                logging.info('dateNow.date() = %s, dateNow.hour = %s, dateNow.min = %s ' % (dateNow.date(), dateNow.hour, dateNow.minute))
+                logging.info('alarm.date() = %s, alarm.hour = %s, alarm.min = %s ' % (alarm.date(), alarm.hour, alarm.minute))
+                randomLink = getRandomLink()
+                logging.info('Random Link is: %s' % randomLink)
+                webbrowser.open(randomLink)
                 checking = False
                 sys.exit()
+# HERE ADD RANDOM LINK FEATURE
+
 
             time.sleep(60)
 
@@ -113,30 +132,34 @@ program = True
 
 rowsAmount = 0
 
-# main loop
-while program:
-    action = printMenu() # possible results: DB, EXIT, ALARM CLOCK
-    if action == 'EXIT':
-        program = False
-    elif action == 'DB':
-        dbAdministration = True
-        while dbAdministration:
-            # creating connection with DB
-            con = sqlite3.connect('ytLinks.db')
+# creating connection with DB
+con = sqlite3.connect('ytLinks.db')
 
-            # access to the columns by indexes and names
-            con.row_factory = sqlite3.Row
+# access to the columns by indexes and names
+con.row_factory = sqlite3.Row
 
-            # creating cursor object
-            cur = con.cursor()
+# creating cursor object
+cur = con.cursor()
 
-            # creating table with YT Links
-            cur.execute('''
+# creating table with YT Links
+cur.execute('''
                 CREATE TABLE IF NOT EXISTS YTLINKS (
                     ID INTEGER PRIMARY KEY ASC,
                     LINK VARCHAR(250) NOT NULL,
                     TITLE VARCHAR(250) DEFAULT ''
                     )''')
+
+
+# main loop
+while program:
+    action = printMenu() # possible results: DB, EXIT, ALARM CLOCK
+
+
+    if action == 'EXIT':
+        program = False
+    elif action == 'DB':
+        dbAdministration = True
+        while dbAdministration:
 
             dbAction = printMenuDB() # possible results: LIST, ADD, DELETE, EXIT
             if dbAction == 'ADD':
@@ -147,8 +170,7 @@ while program:
                 dbAdministration = False
             elif dbAction == 'DELETE':
                 deleteEntry()
-            # close connection with DB
-            con.close()
+
 
     elif action == 'ALARM CLOCK':
         alarmClockAdministration = True
@@ -162,3 +184,5 @@ while program:
             elif alarmClockAction == 'TURN ON':
                 turnOnAlarmClock(alarm)
 
+#close connection with DB
+con.close()
